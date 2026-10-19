@@ -1,5 +1,5 @@
 import { requireRole } from "@/lib/auth";
-import { workingGrade, totals, clearedCount, TOPICS } from "@/lib/topics";
+import { workingGrade, gradeLabel, totals, clearedCount, topicsFor } from "@/lib/topics";
 import { dayString } from "@/lib/progress";
 import { ago } from "@/lib/time";
 import InviteForm from "@/components/InviteForm";
@@ -49,8 +49,8 @@ export default async function TutorPage() {
                       <tr key={s.id}>
                         <td><a href={`/tutor/student/${s.id}`}><strong>{s.first_name}</strong></a></td>
                         <td className="small">{s.board} · {s.tier}</td>
-                        <td className="num">Grade {workingGrade(p)}</td>
-                        <td className="num">{clearedCount(p)}/{TOPICS.length}</td>
+                        <td className="num">{gradeLabel(workingGrade(p, s.tier))}</td>
+                        <td className="num">{clearedCount(p, s.tier)}/{topicsFor(s.tier).length}</td>
                         <td className="num">{t.a ? `${t.acc}%` : "–"}</td>
                         <td className="small">{ago(lastBy[s.id])}</td>
                         <td className="num">{usageBy[s.id] || 0}</td>

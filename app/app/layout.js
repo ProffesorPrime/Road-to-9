@@ -10,7 +10,7 @@ export default async function StudentLayout({ children }) {
   const { data: progress } = await admin.from("progress").select("*").eq("student_id", profile.id).maybeSingle();
   const p = progress || {};
   const live = p.last_day === dayString() || p.last_day === yesterdayString();
-  const nx = nextTopic(p);
+  const nx = nextTopic(p, profile.tier);
 
   return (
     <>

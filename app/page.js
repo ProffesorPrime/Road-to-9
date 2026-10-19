@@ -1,5 +1,5 @@
 import { SITE } from "@/lib/site";
-import { TOPICS } from "@/lib/topics";
+import { GRADES } from "@/lib/topics";
 import { PrimeFace, Sign, Brand } from "@/components/Bits";
 
 export default function Landing() {
@@ -30,10 +30,9 @@ export default function Landing() {
             <PrimeFace />
             <p className="bubble">Greetings! I'm Professor Prime. I won't give you the answer, but I'll help you find it. Every time.</p>
           </div>
-          <div className="label">The road</div>
+          <div className="label">The road: grade 1 to grade 9</div>
           <div className="chips">
-            {TOPICS.slice(0, 7).map(t => <span key={t.id} className="chip">{t.name}</span>)}
-            <span className="chip">+ more</span>
+            {GRADES.map(g => <span key={g.grade} className="chip">{g.grade} · {g.title}</span>)}
           </div>
         </div>
       </section>

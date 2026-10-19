@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { apiSession, canSeeStudent } from "@/lib/auth";
-import { TOPICS, NEED, topicStats, workingGrade, totals } from "@/lib/topics";
+import { NEED, topicStats, workingGrade, gradeLabel, totals, topicsFor } from "@/lib/topics";
 import { PRIME_MODEL } from "@/lib/prime";
 
 export const runtime = "nodejs";
@@ -25,7 +25,7 @@ export async function POST(request) {
   ]);
   const p = progress || {};
   const st = totals(p);
-  const rows = TOPICS.map(t => {
+  const rows = topicsFor(student.tier).filter(t => topicStats(p, t.id).a > 0 || t.grade <= Math.max(workingGrade(p, student.tier) + 1, 2)).map(t => {
     const x = topicStats(p, t.id);
     return `${t.name} (grade ${t.grade}): ${Math.min(x.c, NEED)}/${NEED} towards mastery, ${x.a} attempts, needed help ${x.h} times`;
   }).join("\n");
@@ -34,7 +34,7 @@ export async function POST(request) {
     ? `from a maths tutor to the parents of ${student.first_name}`
     : `addressed to the parent of ${student.first_name}, written by Professor Prime, the friendly AI maths tutor in the Road to 9 app`;
 
-  const prompt = `Write a short, warm progress update (80-110 words, plain text, no headings or bullet points) ${voice}. They study ${student.board} maths, ${student.tier} tier, on the "Road to 9" app. Working grade estimate: ${workingGrade(p)}. Questions answered: ${st.a}, accuracy ${st.acc}%. Mention one or two strengths and one or two topics to focus on next, with a concrete suggestion. If there is little data yet, say so kindly and encourage regular short practice. Do not invent facts beyond this data.\n\nTopic data:\n${rows}`;
+  const prompt = `Write a short, warm progress update (80-110 words, plain text, no headings or bullet points) ${voice}. They study ${student.board} maths, ${student.tier} tier, on the "Road to 9" app. Working grade estimate: ${gradeLabel(workingGrade(p, student.tier))} (topics are graded 1 to 9, following the IGCSE grade list). Questions answered: ${st.a}, accuracy ${st.acc}%. Mention one or two strengths and one or two topics to focus on next, with a concrete suggestion. If there is little data yet, say so kindly and encourage regular short practice. Do not invent facts beyond this data.\n\nTopic data:\n${rows}`;
 
   try {
     const client = new Anthropic();

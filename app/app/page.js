@@ -1,5 +1,5 @@
 import { requireRole } from "@/lib/auth";
-import { TOPICS, BADGES, NEED, topicStats, mastery, clearedCount, nextTopic, workingGrade } from "@/lib/topics";
+import { GRADES, BADGES, NEED, topicsInGrade, topicsFor, maxGradeFor, topicStats, mastery, clearedCount, nextTopic, workingGrade, gradeLabel } from "@/lib/topics";
 import { Sign } from "@/components/Bits";
 
 export const dynamic = "force-dynamic";
@@ -14,26 +14,29 @@ export default async function MapPage() {
   const { profile, admin } = await requireRole("student");
   const { data } = await admin.from("progress").select("*").eq("student_id", profile.id).maybeSingle();
   const p = data || {};
+  const tier = profile.tier;
+  const top = maxGradeFor(tier);
   const badges = p.badges || [];
-  const wg = workingGrade(p), cl = clearedCount(p), nx = nextTopic(p), nxs = topicStats(p, nx.id);
+  const wg = workingGrade(p, tier), cl = clearedCount(p, tier), total = topicsFor(tier).length;
+  const nx = nextTopic(p, tier), nxs = topicStats(p, nx.id);
 
   return (
     <>
       <div className="map-head">
         <div>
           <h1>{greeting()}, {profile.first_name}.</h1>
-          <p className="sub">{profile.board} · {profile.tier} tier. Clear each stop with {NEED} correct answers.</p>
+          <p className="sub">{profile.board} · {profile.tier} tier. Clear each stop with {NEED} correct answers. Clear every stop in a grade to move up the road.</p>
         </div>
         <div className="summary">
-          <div className="sum-tile"><span className="label">Working at</span><strong>Grade {wg}</strong></div>
-          <div className="sum-tile"><span className="label">Stops cleared</span><strong>{cl} / {TOPICS.length}</strong></div>
+          <div className="sum-tile"><span className="label">Working at</span><strong>{gradeLabel(wg)}</strong></div>
+          <div className="sum-tile"><span className="label">Stops cleared</span><strong>{cl} / {total}</strong></div>
         </div>
       </div>
 
       <div className="card next-up">
         <Sign size={46}>{nx.grade}</Sign>
         <div className="grow">
-          <div className="label">Up next</div>
+          <div className="label">Up next · Grade {nx.grade}</div>
           <strong>{nx.name}</strong>
           <div className="small">{nxs.c ? `${Math.min(nxs.c, NEED)} of ${NEED} correct so far` : "New stop. Professor Prime is ready when you are."}</div>
         </div>
@@ -51,36 +54,57 @@ export default async function MapPage() {
         })}
       </div>
 
-      <ol className="road">
-        {TOPICS.map(t => {
-          const s = topicStats(p, t.id), m = mastery(p, t.id), done = m >= 1, isNext = t.id === nx.id && !done;
+      <ol className="levels">
+        {GRADES.map(g => {
+          const ts = topicsInGrade(g.grade);
+          const done = ts.filter(t => mastery(p, t.id) >= 1).length;
+          const pct = Math.round((ts.reduce((s, t) => s + mastery(p, t.id), 0) / ts.length) * 100);
+          const locked = g.grade > top;
+          const isCurrent = !locked && g.grade === nx.grade && done < ts.length;
+          const state = locked ? "locked" : done === ts.length ? "cleared" : isCurrent ? "current" : "";
           return (
-            <li key={t.id} className={`stop${done ? " cleared" : ""}${isNext ? " next" : ""}`}>
-              <div className="card stop-card">
-                <Sign>{t.grade}</Sign>
-                <div>
-                  <h3>{t.name}</h3>
-                  <div className="meta">
-                    <span>{t.strand}</span>
-                    {t.calc && <span className="tag">Calculator</span>}
-                    {done ? <span className="tag done">Cleared</span> : isNext ? <span className="tag next">Up next</span> : null}
+            <li key={g.grade} className={`level ${state}`} id={`grade-${g.grade}`}>
+              <div className="level-sign"><Sign size={g.grade === 9 ? 64 : 52}>{g.grade}</Sign></div>
+              <div className="level-body">
+                <div className="level-head">
+                  <div>
+                    <div className="label">Grade {g.grade} · {g.band}</div>
+                    <h2>{g.title}</h2>
+                  </div>
+                  <div className="level-meter">
+                    {locked ? <span className="tag">Higher tier only</span>
+                      : done === ts.length ? <span className="tag done">Grade cleared</span>
+                      : <span className="small mono">{done}/{ts.length} stops</span>}
+                    {!locked && <span className="meter"><i style={{ width: `${pct}%` }} /></span>}
                   </div>
                 </div>
-                <div className="ring" style={{ background: `conic-gradient(var(--good) ${m * 360}deg, var(--line) 0)` }} aria-label={`${Math.min(s.c, NEED)} of ${NEED} correct`}>
-                  <span>{Math.min(s.c, NEED)}/{NEED}</span>
-                </div>
-                <a className={`btn sm stop-btn${isNext ? "" : " ghost"}`} href={`/app/practice/${t.id}`}>{done ? "Revisit" : s.c ? "Continue" : "Practise"}</a>
+                {!locked && (
+                  <ul className="stops">
+                    {ts.map(t => {
+                      const s = topicStats(p, t.id), m = mastery(p, t.id), cleared = m >= 1, isNext = t.id === nx.id && !cleared;
+                      return (
+                        <li key={t.id}>
+                          <a className={`stop-tile${cleared ? " cleared" : ""}${isNext ? " next" : ""}`} href={`/app/practice/${t.id}`}>
+                            <span className="ring" style={{ background: `conic-gradient(var(--good) ${m * 360}deg, var(--line) 0)` }} aria-hidden="true">
+                              <span>{Math.min(s.c, NEED)}/{NEED}</span>
+                            </span>
+                            <span className="stop-text">
+                              <strong>{t.name}</strong>
+                              <span className="small">
+                                {cleared ? "Cleared" : isNext ? "Up next" : s.a ? "In progress" : t.strand}
+                                {t.calc ? " · calculator" : ""}
+                              </span>
+                            </span>
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             </li>
           );
         })}
-        <li className="stop goal">
-          <div className="card goal-card">
-            <Sign>9</Sign>
-            <h3>{wg >= 9 ? "Grade 9 reached!" : "The Grade 9 sign"}</h3>
-            <p>{wg >= 9 ? "You cleared the whole road. Professor Prime is speechless (almost)." : `Clear every stop to reach the top grade. ${TOPICS.length - cl} to go.`}</p>
-          </div>
-        </li>
       </ol>
     </>
   );

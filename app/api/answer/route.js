@@ -20,7 +20,7 @@ export async function POST(request) {
 
   const correct = checkAnswer(q.payload.check, value);
   const row = await loadProgress(admin, profile.id);
-  const { progress, result } = applyAnswer(row, { topicId: q.topic, correct, firstTry: q.wrong === 0, helped: q.helped });
+  const { progress, result } = applyAnswer(row, { topicId: q.topic, correct, firstTry: q.wrong === 0, helped: q.helped, tier: profile.tier });
 
   const wrong = correct ? q.wrong : q.wrong + 1;
   await Promise.all([

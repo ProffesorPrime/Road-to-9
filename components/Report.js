@@ -1,12 +1,14 @@
-import { TOPICS, NEED, topicStats, mastery, workingGrade, totals, focusList, BADGES } from "@/lib/topics";
+import { GRADES, NEED, topicsInGrade, maxGradeFor, topicStats, mastery, workingGrade, gradeLabel, totals, focusList, BADGES } from "@/lib/topics";
 import ParentNote from "./ParentNote";
 
-// Progress report used by students, parents and the tutor.
+// Progress report used by students, parents and the tutor, grouped by grade 1–9.
 export default function Report({ student, progress, title, noteFor, lastActive }) {
   const p = progress || {};
+  const tier = student.tier;
   const st = totals(p);
-  const focus = focusList(p);
+  const focus = focusList(p, tier);
   const badges = (p.badges || []).map(id => BADGES.find(b => b.id === id)?.name).filter(Boolean);
+  const grades = GRADES.filter(g => g.grade <= maxGradeFor(tier));
 
   return (
     <section>
@@ -17,28 +19,34 @@ export default function Report({ student, progress, title, noteFor, lastActive }
         </span>
       </div>
       <div className="tiles">
-        <div className="sum-tile"><span className="label">Working at</span><strong>Grade {workingGrade(p)}</strong></div>
+        <div className="sum-tile"><span className="label">Working at</span><strong>{gradeLabel(workingGrade(p, tier))}</strong></div>
         <div className="sum-tile"><span className="label">Questions answered</span><strong>{st.a}</strong></div>
         <div className="sum-tile"><span className="label">Accuracy</span><strong>{st.a ? `${st.acc}%` : "–"}</strong></div>
         <div className="sum-tile"><span className="label">Help from Prime</span><strong>{st.h}×</strong></div>
       </div>
       <div className="card table-wrap">
         <table>
-          <thead><tr><th>Stop</th><th>Grade</th><th>Mastery</th><th>Correct</th><th>Attempts</th><th>Accuracy</th><th>Helped</th></tr></thead>
+          <thead><tr><th>Stop</th><th>Mastery</th><th>Correct</th><th>Attempts</th><th>Accuracy</th><th>Helped</th></tr></thead>
           <tbody>
-            {TOPICS.map(t => {
-              const s = topicStats(p, t.id), m = mastery(p, t.id);
-              return (
-                <tr key={t.id}>
-                  <td><strong>{t.name}</strong></td>
-                  <td className="num">{t.grade}</td>
-                  <td><span className="mbar"><i style={{ width: `${m * 100}%` }} /></span><span className="mono small">{Math.round(m * 100)}%</span></td>
-                  <td className="num">{s.c}</td>
-                  <td className="num">{s.a}</td>
-                  <td className="num">{s.a ? `${Math.round((s.c / s.a) * 100)}%` : "–"}</td>
-                  <td className="num">{s.h}</td>
-                </tr>
-              );
+            {grades.map(g => {
+              const ts = topicsInGrade(g.grade);
+              const done = ts.filter(t => mastery(p, t.id) >= 1).length;
+              return [
+                <tr key={`g${g.grade}`} className="grade-row"><td colSpan={6}>Grade {g.grade} · {g.title} · {done}/{ts.length} cleared</td></tr>,
+                ...ts.map(t => {
+                  const s = topicStats(p, t.id), m = mastery(p, t.id);
+                  return (
+                    <tr key={t.id}>
+                      <td><strong>{t.name}</strong></td>
+                      <td><span className="mbar"><i style={{ width: `${m * 100}%` }} /></span><span className="mono small">{Math.round(m * 100)}%</span></td>
+                      <td className="num">{s.c}</td>
+                      <td className="num">{s.a}</td>
+                      <td className="num">{s.a ? `${Math.round((s.c / s.a) * 100)}%` : "–"}</td>
+                      <td className="num">{s.h}</td>
+                    </tr>
+                  );
+                }),
+              ];
             })}
           </tbody>
         </table>
@@ -59,7 +67,7 @@ export default function Report({ student, progress, title, noteFor, lastActive }
         ) : (
           <div className="card">
             <div className="label">How this works</div>
-            <p className="small">Your tutor and your parents can see this report. Mastery fills up with correct answers. Getting help from Professor Prime is fine. It just means fewer XP for that question.</p>
+            <p className="small">Topics are grouped by grade, 1 to 9, like the IGCSE grade lists. Your working grade is the highest grade where you've mastered most of that grade and everything below it. Your tutor and your parents can see this report.</p>
           </div>
         )}
       </div>

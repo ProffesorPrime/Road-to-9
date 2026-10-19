@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
-import { TOPIC, TOPICS, NEED, topicStats } from "@/lib/topics";
+import { TOPIC, NEED, topicStats, topicsFor } from "@/lib/topics";
 import Practice from "@/components/Practice";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export default async function PracticePage({ params }) {
     <Practice
       key={topic}
       topic={TOPIC[topic]}
-      topics={TOPICS.map(t => ({ id: t.id, name: t.name, grade: t.grade }))}
+      topics={topicsFor(profile.tier).map(t => ({ id: t.id, name: t.name, grade: t.grade }))}
       startCorrect={Math.min(topicStats(data, topic).c, NEED)}
       need={NEED}
       primeLive={!!process.env.ANTHROPIC_API_KEY}

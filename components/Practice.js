@@ -86,7 +86,8 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
         xpFloat(r.gain);
         addMsg("prime", pick(PRAISE));
         announceBadges(r.newBadges);
-        if (r.cleared) setCleared({ name: topic.name, next: r.nextTopic });
+        if (r.cleared) setCleared({ name: topic.name, next: r.nextTopic, grade: r.gradeDone });
+        if (r.gradeDone) addMsg("prime", `EUREKA! You cleared every stop in Grade ${r.gradeDone}. +50 bonus XP. Onwards up the road!`);
         router.refresh(); // updates XP and streak in the header
         setTimeout(() => nextBtn.current?.focus(), 50);
       } else {
@@ -181,7 +182,11 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
         <div className="qtop">
           <label className="label" htmlFor="topic-select">Stop</label>
           <select id="topic-select" value={topic.id} onChange={e => router.push(`/app/practice/${e.target.value}`)}>
-            {topics.map(t => <option key={t.id} value={t.id}>Grade {t.grade} · {t.name}</option>)}
+            {[...new Set(topics.map(t => t.grade))].map(g => (
+              <optgroup key={g} label={`Grade ${g}`}>
+                {topics.filter(t => t.grade === g).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </optgroup>
+            ))}
           </select>
         </div>
         <article className="card qcard">
@@ -225,7 +230,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
           {cleared && (
             <div className="cleared-banner">
               <Sign>{topic.grade}</Sign>
-              <div><strong>Stop cleared: {cleared.name}</strong>{cleared.next && <div style={{ opacity: 0.85 }}>Next on the road: {cleared.next.name}</div>}</div>
+              <div><strong>{cleared.grade ? `Grade ${cleared.grade} cleared!` : `Stop cleared: ${cleared.name}`}</strong>{cleared.next && <div style={{ opacity: 0.85 }}>Next on the road: {cleared.next.name}</div>}</div>
             </div>
           )}
           <div className="qactions">
