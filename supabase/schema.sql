@@ -1,6 +1,6 @@
 -- Road to 9 — database setup
 -- Paste this whole file into Supabase → SQL Editor → New query, then press Run.
--- It is safe to run once on a new project.
+-- Run it once on a new, empty project.
 
 -- ---------- Tables ----------
 
@@ -98,6 +98,10 @@ create or replace function public.bump_usage(p_student uuid, p_kind text, p_limi
 language plpgsql security definer set search_path = public as $$
 declare c int;
 begin
+  -- Only the website's server (service role) may use this counter.
+  if coalesce(current_setting('request.jwt.claims', true)::json ->> 'role', '') <> 'service_role' then
+    raise exception 'not allowed';
+  end if;
   insert into public.prime_usage (student_id, day, kind, count)
   values (p_student, current_date, p_kind, 1)
   on conflict (student_id, day, kind)
@@ -108,6 +112,7 @@ begin
 end;
 $$;
 revoke execute on function public.bump_usage(uuid, text, int) from public, anon, authenticated;
+grant execute on function public.bump_usage(uuid, text, int) to service_role;
 
 -- ---------- Row level security ----------
 -- The website writes everything through the server. These rules only control
@@ -121,27 +126,21 @@ alter table public.attempts enable row level security;
 alter table public.prime_usage enable row level security;
 alter table public.prime_log enable row level security;
 
-drop policy if exists "read profiles" on public.profiles;
 create policy "read profiles" on public.profiles for select
   using (id = auth.uid() or public.is_tutor() or public.is_parent_of(id));
 
-drop policy if exists "read links" on public.parent_links;
 create policy "read links" on public.parent_links for select
   using (parent_id = auth.uid() or public.is_tutor());
 
-drop policy if exists "read progress" on public.progress;
 create policy "read progress" on public.progress for select
   using (student_id = auth.uid() or public.is_tutor() or public.is_parent_of(student_id));
 
-drop policy if exists "read attempts" on public.attempts;
 create policy "read attempts" on public.attempts for select
   using (student_id = auth.uid() or public.is_tutor() or public.is_parent_of(student_id));
 
-drop policy if exists "read usage" on public.prime_usage;
 create policy "read usage" on public.prime_usage for select
   using (student_id = auth.uid() or public.is_tutor());
 
-drop policy if exists "read prime log" on public.prime_log;
 create policy "read prime log" on public.prime_log for select
   using (public.is_tutor());
 
