@@ -8,20 +8,12 @@ Keep a private note open (not shared anywhere) to paste keys into as you go.
 
 ## 1. Supabase (logins and database)
 
-1. Go to **supabase.com** → Start your project → sign in with GitHub.
-2. **New project**. Name it `road-to-9`, make a strong database password (save it in your note), and pick the region closest to the UAE.
-3. Wait a minute for it to finish setting up.
-4. Left menu → **SQL Editor** → **New query**. Open `supabase/schema.sql` from this project, copy everything, paste it in, press **Run**. You should see "Success".
-5. Left menu → **Authentication** → **Sign In / Providers**. Under Email, turn **off** "Allow new users to sign up". (Only you can invite people.)
-6. **Authentication → Email Templates → Invite user.** Replace the link in the message with this one, and save:
-   ```
-   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">Accept your invite to Road to 9</a>
-   ```
-7. **Email Templates → Reset Password.** Replace the link with this one, and save:
-   ```
-   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Choose a new password</a>
-   ```
-8. **Project Settings → API Keys** (or **API**). Copy into your note:
+> ✅ Already done by Claude: the `road-to-9` project (Mumbai region) and the whole database.
+> If you ever need to rebuild it, paste `supabase/schema.sql` into **SQL Editor → New query** on an empty project and press **Run**.
+> The default email templates work as they are, so there's nothing to change there.
+
+1. Recommended: **Authentication → Sign In / Providers**. Under Email, turn **off** "Allow new users to sign up". (Only you can invite people. Even if this stays on, a stranger who signs up gets no access to anything.)
+2. **Project Settings → API Keys** (or **API**). Copy into your note:
    - Project URL
    - the **publishable** (or **anon public**) key
    - the **secret** (or **service_role**) key. This one is secret: never share it.
