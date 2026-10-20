@@ -21,6 +21,7 @@ export default async function StudentLayout({ children }) {
         links={[
           { href: "/app", label: "Map" },
           { href: `/app/practice/${nx.id}`, label: "Practice", match: "/app/practice" },
+          { href: "/app/arcade", label: "Arcade" },
           { href: "/app/report", label: "Report" },
         ]}
       />

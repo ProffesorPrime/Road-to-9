@@ -40,7 +40,7 @@ export default async function TutorPage() {
           <div className="card table-wrap">
             {students.length ? (
               <table>
-                <thead><tr><th>Student</th><th>Exam</th><th>Working at</th><th>Stops</th><th>Accuracy</th><th>Last active</th><th>Prime today</th></tr></thead>
+                <thead><tr><th>Student</th><th>Exam</th><th>Grade Check</th><th>Working at</th><th>Stops</th><th>Accuracy</th><th>Last active</th><th>Prime today</th></tr></thead>
                 <tbody>
                   {students.map(s => {
                     const p = progressBy[s.id] || {};
@@ -49,6 +49,7 @@ export default async function TutorPage() {
                       <tr key={s.id}>
                         <td><a href={`/tutor/student/${s.id}`}><strong>{s.first_name}</strong></a></td>
                         <td className="small">{s.board} · {s.tier}</td>
+                        <td className="num">{p.placement?.grade ? `Grade ${p.placement.grade}` : "–"}</td>
                         <td className="num">{gradeLabel(workingGrade(p, s.tier))}</td>
                         <td className="num">{clearedCount(p, s.tier)}/{topicsFor(s.tier).length}</td>
                         <td className="num">{t.a ? `${t.acc}%` : "–"}</td>

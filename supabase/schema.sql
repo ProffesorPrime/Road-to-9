@@ -31,7 +31,9 @@ create table if not exists public.progress (
   clean_run int not null default 0,
   combo int not null default 0,
   badges text[] not null default '{}',
-  topics jsonb not null default '{}'::jsonb,
+  topics jsonb not null default '{}'::jsonb,             -- per topic: c correct, a attempts, h helped, l lesson done
+  placement jsonb,                                       -- latest Grade Check result: { grade, at, answered }
+  arcade_best int not null default 0,                    -- Arcade high score
   updated_at timestamptz not null default now()
 );
 

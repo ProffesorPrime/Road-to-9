@@ -15,7 +15,7 @@ export default function Report({ student, progress, title, noteFor, lastActive }
       <div className="report-head">
         <div><div className="label">Progress report</div><h1>{title || `${student.first_name}'s road so far`}</h1></div>
         <span className="small">
-          {student.board} · {student.tier} tier{lastActive ? ` · last active ${lastActive}` : ""}
+          {student.board} · {student.tier} tier{p.placement?.grade ? ` · Grade Check: Grade ${p.placement.grade}` : ""}{lastActive ? ` · last active ${lastActive}` : ""}
         </span>
       </div>
       <div className="tiles">
@@ -26,18 +26,19 @@ export default function Report({ student, progress, title, noteFor, lastActive }
       </div>
       <div className="card table-wrap">
         <table>
-          <thead><tr><th>Stop</th><th>Mastery</th><th>Correct</th><th>Attempts</th><th>Accuracy</th><th>Helped</th></tr></thead>
+          <thead><tr><th>Stop</th><th>Lesson</th><th>Mastery</th><th>Correct</th><th>Attempts</th><th>Accuracy</th><th>Helped</th></tr></thead>
           <tbody>
             {grades.map(g => {
               const ts = topicsInGrade(g.grade);
               const done = ts.filter(t => mastery(p, t.id) >= 1).length;
               return [
-                <tr key={`g${g.grade}`} className="grade-row"><td colSpan={6}>Grade {g.grade} · {g.title} · {done}/{ts.length} cleared</td></tr>,
+                <tr key={`g${g.grade}`} className="grade-row"><td colSpan={7}>Grade {g.grade} · {g.title} · {done}/{ts.length} cleared</td></tr>,
                 ...ts.map(t => {
                   const s = topicStats(p, t.id), m = mastery(p, t.id);
                   return (
                     <tr key={t.id}>
                       <td><strong>{t.name}</strong></td>
+                      <td className="small">{s.l ? "Done" : "–"}</td>
                       <td><span className="mbar"><i style={{ width: `${m * 100}%` }} /></span><span className="mono small">{Math.round(m * 100)}%</span></td>
                       <td className="num">{s.c}</td>
                       <td className="num">{s.a}</td>
@@ -67,7 +68,7 @@ export default function Report({ student, progress, title, noteFor, lastActive }
         ) : (
           <div className="card">
             <div className="label">How this works</div>
-            <p className="small">Topics are grouped by grade, 1 to 9, like the IGCSE grade lists. Your working grade is the highest grade where you've mastered most of that grade and everything below it. Your tutor and your parents can see this report.</p>
+            <p className="small">Topics are grouped by grade, 1 to 9, like the IGCSE grade lists. Each stop starts with a short lesson from Professor Prime. Your working grade is the highest grade where you've mastered most of that grade and everything below it. Your tutor and your parents can see this report.</p>
           </div>
         )}
       </div>

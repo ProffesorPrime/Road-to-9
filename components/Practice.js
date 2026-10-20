@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PrimeFace, Sign } from "./Bits";
+import VoiceToggle from "./VoiceToggle";
+import { speak, stop as stopVoice } from "@/lib/speech";
 
 const INTROS = [
   t => `${t}! One of my favourite experiments. Have a go, and call me if you get stuck.`,
@@ -47,6 +49,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
   const addMsg = (who, text, extra = {}) => {
     const id = ++msgId;
     setChat(c => [...c, { id, who, text, ...extra }]);
+    if (who === "prime" && !extra.thinking) speak(text);
     return id;
   };
   const setMsg = (id, patch) => setChat(c => c.map(m => (m.id === id ? { ...m, ...patch } : m)));
@@ -69,7 +72,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
       setLoadErr(e.message || "Couldn't load a question. Check your connection.");
     }
   }
-  useEffect(() => { loadQuestion(); return () => ctl.current?.abort(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadQuestion(); return () => { ctl.current?.abort(); stopVoice(); }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit(e) {
     e.preventDefault();
@@ -95,7 +98,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
         setFeedback({ kind: "bad", text: msgs[Math.min(r.wrong, 3) - 1] });
         setCanReveal(r.canReveal);
         if (r.wrong === 1) addMsg("prime", "Hmm, my instruments disagree. Check your arithmetic, or tap Give me a hint.");
-        if (r.wrong === 2) addMsg("prime", "Two tries. Shall we look at it together? Tap Walk me through it.");
+        if (r.wrong === 2) addMsg("prime", "Two tries. Let's see it another way: tap Walk me through it, or watch the lesson for this stop.");
         ansInput.current?.select();
       }
     } catch {
@@ -119,7 +122,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
       const res = await fetch("/api/hint", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: q.id }) });
       const r = await res.json();
       const text = res.ok ? r.text : r.error;
-      if (intoId) setMsg(intoId, { text, thinking: false }); else addMsg("prime", text);
+      if (intoId) { setMsg(intoId, { text, thinking: false }); speak(text); } else addMsg("prime", text);
       announceBadges(r.newBadges);
     } catch {
       addMsg("prime", "Couldn't reach my notes. Check your connection.");
@@ -160,6 +163,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
         setMsg(id, { text: full, thinking: false });
       }
       history.current = [...messages, { role: "assistant", content: full }].slice(-10);
+      speak(full);
     } catch (e) {
       if (e.name === "AbortError") setMsg(id, { text: full ? `${full} …` : "Stopped.", thinking: false });
       else setMsg(id, { text: "Lost the signal to my lab. Tap again to retry.", thinking: false });
@@ -188,6 +192,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
               </optgroup>
             ))}
           </select>
+          <a className="btn ghost sm" href={`/app/learn/${topic.id}`}>Watch the lesson</a>
         </div>
         <article className="card qcard">
           <div className="qmeta">
@@ -246,6 +251,7 @@ export default function Practice({ topic, topics, startCorrect, need, primeLive 
         <div className="prime-head">
           <PrimeFace small />
           <div><h3>Professor Prime</h3><span className={`pill${primeLive ? " live" : ""}`}>{primeLive ? "AI tutor live" : "Written hints"}</span></div>
+          <div style={{ marginLeft: "auto" }}><VoiceToggle /></div>
         </div>
         <div className="chat" ref={chatBox} aria-live="polite">
           {chat.map(m => (

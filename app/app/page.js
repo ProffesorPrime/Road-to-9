@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
-import { GRADES, BADGES, NEED, topicsInGrade, topicsFor, maxGradeFor, topicStats, mastery, clearedCount, nextTopic, workingGrade, gradeLabel } from "@/lib/topics";
+import { GRADES, BADGES, NEED, topicsInGrade, topicsFor, maxGradeFor, topicStats, mastery, clearedCount, nextTopic, workingGrade, gradeLabel, lessonDone, startGrade, totals } from "@/lib/topics";
+import { PrimeBig } from "@/components/Bits";
 import { Sign } from "@/components/Bits";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,10 @@ export default async function MapPage() {
   const badges = p.badges || [];
   const wg = workingGrade(p, tier), cl = clearedCount(p, tier), total = topicsFor(tier).length;
   const nx = nextTopic(p, tier), nxs = topicStats(p, nx.id);
+  const placed = p.placement?.grade || null, from = startGrade(p, tier);
+  const brandNew = !placed && totals(p).a === 0;
+  const nxLesson = !lessonDone(p, nx.id) && nxs.c < NEED;
+  const nxHref = nxLesson ? `/app/learn/${nx.id}` : `/app/practice/${nx.id}`;
 
   return (
     <>
@@ -28,19 +33,32 @@ export default async function MapPage() {
           <p className="sub">{profile.board} · {profile.tier} tier. Clear each stop with {NEED} correct answers. Clear every stop in a grade to move up the road.</p>
         </div>
         <div className="summary">
-          <div className="sum-tile"><span className="label">Working at</span><strong>{gradeLabel(wg)}</strong></div>
+          {placed && <a className="sum-tile link-tile" href="/app/check"><span className="label">Grade Check</span><strong>Grade {placed}</strong></a>}
+          <div className="sum-tile"><span className="label">Mastered to</span><strong>{gradeLabel(wg)}</strong></div>
           <div className="sum-tile"><span className="label">Stops cleared</span><strong>{cl} / {total}</strong></div>
         </div>
       </div>
+
+      {brandNew && (
+        <div className="card welcome">
+          <PrimeBig mood="happy" size={110} />
+          <div className="grow">
+            <div className="label">Start here</div>
+            <h2>Take your Grade Check</h2>
+            <p className="small">10 quick questions so Professor Prime knows where your road should start. About 10 minutes.</p>
+          </div>
+          <a className="btn" href="/app/check">Start the Grade Check</a>
+        </div>
+      )}
 
       <div className="card next-up">
         <Sign size={46}>{nx.grade}</Sign>
         <div className="grow">
           <div className="label">Up next · Grade {nx.grade}</div>
           <strong>{nx.name}</strong>
-          <div className="small">{nxs.c ? `${Math.min(nxs.c, NEED)} of ${NEED} correct so far` : "New stop. Professor Prime is ready when you are."}</div>
+          <div className="small">{nxLesson ? "Start with a short lesson. Professor Prime will show you how it works." : `${Math.min(nxs.c, NEED)} of ${NEED} correct so far`}</div>
         </div>
-        <a className="btn" href={`/app/practice/${nx.id}`}>{nxs.c ? "Keep going" : "Start"}</a>
+        <a className="btn" href={nxHref}>{nxLesson ? "Start the lesson" : "Keep practising"}</a>
       </div>
 
       <div className="badges">
@@ -74,6 +92,7 @@ export default async function MapPage() {
                   <div className="level-meter">
                     {locked ? <span className="tag">Higher tier only</span>
                       : done === ts.length ? <span className="tag done">Grade cleared</span>
+                      : placed && g.grade < from ? <span className="tag">Grade Check: you know this</span>
                       : <span className="small mono">{done}/{ts.length} stops</span>}
                     {!locked && <span className="meter"><i style={{ width: `${pct}%` }} /></span>}
                   </div>
@@ -82,16 +101,17 @@ export default async function MapPage() {
                   <ul className="stops">
                     {ts.map(t => {
                       const s = topicStats(p, t.id), m = mastery(p, t.id), cleared = m >= 1, isNext = t.id === nx.id && !cleared;
+                      const learn = !lessonDone(p, t.id) && !cleared;
                       return (
                         <li key={t.id}>
-                          <a className={`stop-tile${cleared ? " cleared" : ""}${isNext ? " next" : ""}`} href={`/app/practice/${t.id}`}>
+                          <a className={`stop-tile${cleared ? " cleared" : ""}${isNext ? " next" : ""}`} href={learn ? `/app/learn/${t.id}` : `/app/practice/${t.id}`}>
                             <span className="ring" style={{ background: `conic-gradient(var(--good) ${m * 360}deg, var(--line) 0)` }} aria-hidden="true">
                               <span>{Math.min(s.c, NEED)}/{NEED}</span>
                             </span>
                             <span className="stop-text">
                               <strong>{t.name}</strong>
                               <span className="small">
-                                {cleared ? "Cleared" : isNext ? "Up next" : s.a ? "In progress" : t.strand}
+                                {cleared ? "Cleared" : learn ? (isNext ? "Up next · lesson" : "Lesson") : isNext ? "Up next" : s.a ? "In progress" : t.strand}
                                 {t.calc ? " · calculator" : ""}
                               </span>
                             </span>
